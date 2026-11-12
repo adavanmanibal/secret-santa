@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#0a0f1f">
+<title>Secret Santa GS27 🎅</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎁</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<script>
+/* ============================================================
+   CONFIG — les 2 seules lignes à remplir (Supabase > Project Settings > API)
+   Tant qu'elles sont vides, le site tourne en MODE DÉMO (rien n'est enregistré).
+   ============================================================ */
+const SUPABASE_URL = "https://qqpihxogkxormygegjbf.supabase.co/rest/v1/";   // ex. "https://abcdefgh.supabase.co"
+const SUPABASE_KEY = "sb_publishable_kjOc4Dvsa-9s5AoddzhVgg_FpD-KPWw";   // clé "anon" / "publishable" (publique, c'est normal)
+
+const EVENT = {
+  team: "GS27",
+  budget: "10 €",
+  date: "2026-12-04",              // remise des cadeaux
+  dateLabel: "vendredi 4 décembre"
+};
+</script>
+<style>
+:root{
+  --bg:#0a0f1f; --ink:#fff7e6; --mute:#9aa3c0; --red:#e5383b; --red2:#9d0208;
+  --gold:#ffd166; --green:#2ec4a0; --panel:rgba(255,255,255,.06); --line:rgba(255,255,255,.12);
+  --display:"Bricolage Grotesque",ui-rounded,"Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{
+  font-family:var(--display);color:var(--ink);background:var(--bg);
+  background-image:radial-gradient(60vw 50vh at 85% -10%,rgba(229,56,59,.35),transparent 70%),
+                   radial-gradient(55vw 45vh at 0% 100%,rgba(46,196,160,.22),transparent 70%);
+  background-attachment:fixed;-webkit-font-smoothing:antialiased;overflow-x:hidden;
+}
+#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:50}
+#app{position:relative;max-width:760px;margin:0 auto;padding:28px 18px 80px}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:18px}
+.ghost{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:8px 14px;font-size:14px}
+.ghost:hover{background:rgba(255,255,255,.12)}
+.demo{background:var(--gold);color:#3a2a00;font-weight:800;font-size:12px;letter-spacing:.08em;
+  padding:6px 12px;border-radius:999px;text-transform:uppercase}
+
+.kicker{letter-spacing:.28em;text-transform:uppercase;font-size:12px;color:var(--gold);font-weight:600}
+h1{font-size:clamp(56px,15vw,120px);line-height:.86;margin:10px 0 14px;font-weight:800;letter-spacing:-.04em}
+h1 span{display:block;color:var(--red);text-shadow:0 0 40px rgba(229,56,59,.6);transform:rotate(-3deg);transform-origin:left}
+h2{font-size:26px;margin:0 0 14px;font-weight:800;letter-spacing:-.02em}
+.sub{font-size:18px;color:var(--mute);max-width:32ch;margin:0 0 22px}
+.sub b{color:var(--ink)}
+.chips{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:38px}
+.chip{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 14px;font-size:14px;color:var(--mute)}
+.chip b{color:var(--ink);font-size:16px;display:block}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:10px}
+.who{display:flex;align-items:center;gap:10px;text-align:left;background:var(--panel);border:1px solid var(--line);
+  border-radius:16px;padding:10px 12px;transition:transform .15s,background .15s,border-color .15s}
+.who:hover{transform:translateY(-3px) rotate(-1deg);background:rgba(255,255,255,.1);border-color:var(--gold)}
+.av{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:14px;color:#0a0f1f;position:relative}
+.av::after{content:"🎅";position:absolute;top:-13px;right:-8px;font-size:17px;transform:rotate(18deg)}
+.who .n{font-weight:600;font-size:15px;line-height:1.15}
+.who .s{font-size:12px;color:var(--mute)}
+.foot{margin-top:34px;color:var(--mute);font-size:14px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.foot a{color:var(--mute)}
+.bar{height:8px;border-radius:9px;background:var(--panel);overflow:hidden;margin:8px 0 0;width:100%}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--red),var(--gold));border-radius:9px;transition:width .6s}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:18px;margin-top:22px}
+.panel h3{margin:0 0 6px;font-size:17px}
+.panel p{margin:0 0 12px;color:var(--mute);font-size:14px}
+textarea,input[type=text],input[type=password]{width:100%;background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:12px;padding:12px;resize:vertical}
+.btn{background:var(--red);border:0;border-radius:12px;padding:12px 18px;font-weight:800;box-shadow:0 6px 0 var(--red2);transition:transform .08s,box-shadow .08s}
+.btn:active{transform:translateY(4px);box-shadow:0 2px 0 var(--red2)}
+.btn.gold{background:var(--gold);color:#3a2a00;box-shadow:0 6px 0 #b8860b}
+.btn.small{padding:7px 11px;font-size:13px;box-shadow:none;background:var(--panel);border:1px solid var(--line);font-weight:600}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.msg{font-size:14px;color:var(--gold);min-height:20px;margin-top:8px}
+.twist{background:linear-gradient(90deg,rgba(255,209,102,.2),transparent);border-left:4px solid var(--gold);padding:12px 14px;border-radius:10px;margin-bottom:16px;font-size:15px}
+
+/* ---------- modal code ---------- */
+.veil{position:fixed;inset:0;background:rgba(5,8,18,.8);backdrop-filter:blur(8px);display:grid;place-items:center;z-index:40;padding:18px}
+.modal{background:#141a33;border:1px solid var(--line);border-radius:24px;padding:26px;width:min(380px,100%);text-align:center;animation:pop .25s cubic-bezier(.2,1.4,.4,1)}
+.modal p{color:var(--mute);font-size:14px;margin:6px 0 16px}
+.pin{font-size:38px;letter-spacing:.5em;text-align:center;padding:12px 0 12px .5em!important;font-weight:800}
+.shake{animation:shake .4s}
+@keyframes pop{from{transform:scale(.85);opacity:0}}
+@keyframes shake{20%,60%{transform:translateX(-9px)}40%,80%{transform:translateX(9px)}}
+
+/* ---------- la scène : booster + carte ---------- */
+.scene{display:flex;flex-direction:column;align-items:center;margin:8px 0 0}
+.stage{position:relative;width:min(280px,76vw);aspect-ratio:5/7;perspective:1200px;touch-action:none;user-select:none;-webkit-user-select:none}
+.caption{min-height:54px;margin-top:20px;text-align:center;font-size:18px;font-weight:600;max-width:30ch}
+.caption small{display:block;color:var(--mute);font-weight:400;font-size:13px;margin-top:4px}
+.flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:45}
+.flash.on{animation:flash .7s ease-out}
+@keyframes flash{0%{opacity:.95}100%{opacity:0}}
+
+.pack{position:absolute;inset:0;z-index:2;cursor:grab;animation:idle 3.2s ease-in-out infinite;filter:drop-shadow(0 24px 30px rgba(0,0,0,.55))}
+.pack.tap{animation:wiggle .35s}
+.pack.gone{animation:drop .7s cubic-bezier(.6,-.3,.7,.3) forwards;pointer-events:none}
+.pack .body,.pack .strip{position:absolute;left:0;right:0;overflow:hidden;
+  background:
+    repeating-linear-gradient(115deg,rgba(255,255,255,.0) 0 14px,rgba(255,255,255,.07) 14px 28px),
+    linear-gradient(160deg,#ff5a5f 0%,#d00000 45%,#7a0010 100%);}
+.pack .strip{top:0;height:12%;border-radius:10px 10px 0 0;z-index:3;transform-origin:100% 100%;
+  transform:translateY(calc(var(--p,0)*-16px)) rotate(calc(var(--p,0)*-11deg));
+  clip-path:polygon(0 0,100% 0,100% 100%,95% 78%,90% 100%,85% 78%,80% 100%,75% 78%,70% 100%,65% 78%,60% 100%,55% 78%,50% 100%,45% 78%,40% 100%,35% 78%,30% 100%,25% 78%,20% 100%,15% 78%,10% 100%,5% 78%,0 100%);
+  border-bottom:0}
+.pack .strip::after{content:"✂ - - - - - - - - - - - - - - - -";position:absolute;inset:auto 0 30% 8px;font-size:10px;color:rgba(255,255,255,.75);white-space:nowrap;letter-spacing:.1em}
+.pack.open .strip{animation:fly .6s ease-in forwards}
+.pack .body{top:11%;bottom:0;border-radius:0 0 12px 12px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:14px}
+.pack .body::before{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.55) 50%,transparent 65%);transform:translateX(-120%);animation:sheen 3.2s ease-in-out infinite}
+.pack .band{background:var(--gold);color:#5a3d00;font-weight:800;font-size:11px;letter-spacing:.22em;padding:5px 0;width:120%;transform:rotate(-6deg);text-transform:uppercase}
+.pack .q{font-size:110px;font-weight:800;line-height:1;margin:10px 0 4px;color:var(--ink);text-shadow:0 6px 0 rgba(0,0,0,.25)}
+.pack .t{font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1}
+.pack .m{font-size:11px;opacity:.85;margin-top:8px;letter-spacing:.08em;text-transform:uppercase}
+@keyframes idle{0%,100%{transform:rotate(-2deg) translateY(0)}50%{transform:rotate(2deg) translateY(-8px)}}
+@keyframes wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-7deg) scale(1.04)}75%{transform:rotate(7deg) scale(1.04)}}
+@keyframes sheen{0%,55%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
+@keyframes fly{to{transform:translate(60px,-260px) rotate(-70deg);opacity:0}}
+@keyframes drop{to{transform:translateY(120vh) rotate(14deg);opacity:0}}
+
+.card{position:absolute;inset:0;z-index:1;--flip:0deg;--rx:0deg;--ry:0deg;transform:scale(.9);transition:transform .6s cubic-bezier(.2,1.3,.4,1)}
+.card.up{transform:scale(1)}
+.card.tremble{animation:tremble .12s linear infinite}
+@keyframes tremble{0%{translate:-2px 1px}50%{translate:2px -1px}100%{translate:-1px -2px}}
+.card .inner{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .8s cubic-bezier(.3,1.3,.4,1);
+  transform:rotateX(var(--rx)) rotateY(calc(var(--flip) + var(--ry)))}
+.face{position:absolute;inset:0;border-radius:18px;backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden;
+  box-shadow:0 24px 40px rgba(0,0,0,.55)}
+.face.back{background:
+    radial-gradient(circle at 50% 50%,rgba(255,209,102,.25),transparent 60%),
+    repeating-conic-gradient(from 0deg at 50% 50%,#12352b 0 12deg,#0d2a22 12deg 24deg);
+  border:8px solid #f5e6c4;display:grid;place-items:center}
+.face.back b{font-size:120px;color:var(--gold);text-shadow:0 0 30px rgba(255,209,102,.7)}
+.face.back i{position:absolute;bottom:14px;left:0;right:0;text-align:center;font-style:normal;font-size:11px;letter-spacing:.25em;color:#f5e6c4;text-transform:uppercase}
+.face.front{transform:rotateY(180deg);background:linear-gradient(170deg,#fffaf0,#ffe8c2);color:#1b1030;border:8px solid var(--gold);
+  display:flex;flex-direction:column;padding:12px}
+.face.front::after{content:"";position:absolute;inset:0;pointer-events:none;mix-blend-mode:color-dodge;opacity:.32;
+  background:linear-gradient(115deg,transparent 20%,#ff6ad5 35%,#ffe66d 45%,#6dffb0 55%,#6db8ff 65%,transparent 80%);
+  background-size:300% 300%;background-position:var(--mx,50%) var(--my,50%)}
+.rar{display:flex;justify-content:space-between;font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+.rar em{font-style:normal;background:#1b1030;color:var(--gold);padding:3px 7px;border-radius:6px}
+.art{flex:1;margin:8px 0;border-radius:12px;display:grid;place-items:center;position:relative;overflow:hidden;min-height:0}
+.art .big{font-size:clamp(54px,20vw,84px);font-weight:800;color:#fff;letter-spacing:-.04em;text-shadow:0 5px 0 rgba(0,0,0,.2)}
+.art .hat{position:absolute;top:6px;right:10px;font-size:34px;transform:rotate(16deg)}
+.to{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#7a5c2e;font-weight:600}
+.nm{font-size:clamp(24px,8vw,32px);font-weight:800;line-height:1;letter-spacing:-.03em;margin:2px 0 8px;overflow-wrap:anywhere}
+.stats{list-style:none;margin:0;padding:0;font-size:11.5px;border-top:2px dashed #d9b97a}
+.stats li{display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid #ecd6a6}
+.stats b{white-space:nowrap}
+.joke .art{background:#1b1030!important}
+.hide{display:none!important}
+
+/* ---------- admin ---------- */
+.arow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.arow span{font-size:13px;color:var(--mute)}
+.arow strong{font-size:15px}
+
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<canvas id="fx"></canvas>
+<div class="flash" id="flash"></div>
+<div id="app"></div>
+
+<script>
+/* ============================================================
+   API — Supabase en direct (REST/RPC), ou faux serveur en mode démo
+   ============================================================ */
+const DEMO = !SUPABASE_URL || !SUPABASE_KEY;
+const $ = (s, r = document) => r.querySelector(s);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+async function rpc(fn, args = {}) {
+  if (DEMO) { await sleep(180); return demo[fn](args); }
+  const r = await fetch(`${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/rpc/${fn}`, {
+    method: "POST",
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify(args)
+  });
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  return r.json();
+}
+
+const ERR = {
+  pin: "Mauvais code. Le Père Noël te regarde. 👀",
+  locked: "Trop d'essais ! Code bloqué 10 minutes. Va prendre un café. ☕",
+  already: "Ce prénom a déjà un code. Si ce n'est pas toi, préviens Adavan.",
+  format: "Il faut exactement 4 chiffres.",
+  nopin: "Pas encore de code pour ce prénom.",
+  unknown: "Prénom introuvable (retiré de la liste ?).",
+  notdrawn: "Le tirage n'a pas encore été lancé.",
+  admin: "Mot de passe admin incorrect.",
+  exists: "Ce prénom est déjà dans la liste.",
+  few: "Il faut au moins 3 participants.",
+  drawn: "Le tirage est déjà fait."
+};
+const errText = e => ERR[e] || "Oups, souci de connexion. Réessaie.";
+
+/* ---------- faux serveur (mode démo) ---------- */
+const demo = (() => {
+  const P = ["Adavan","Sarah","Romain","Alix","Florian","Victoire","Marie","Tristan","Christophe LG","Christophe D","Clément","Gaëlle","Audrey","Laurence","Charlène","Luisa"]
+    .map(name => ({ name, pin: null, wishlist: "", giftee: null, opened: false, changed: false }));
+  const WISH = ["J'adore le chocolat noir, les plantes increvables et les chaussettes moches.", "Tout sauf une bougie. J'ai 14 bougies.", ""];
+  const draw = () => { const s = [...P].sort(() => Math.random() - .5); s.forEach((p, i) => { p.giftee = s[(i + 1) % s.length].name; p.opened = false; p.changed = false; }); };
+  P.forEach((p, i) => p.wishlist = WISH[i % 3]); draw();
+  const find = n => P.find(p => p.name === n);
+  const auth = (n, pin) => { const p = find(n); return !p ? { e: "unknown" } : !p.pin ? { e: "nopin" } : p.pin !== pin ? { e: "pin" } : { p }; };
+  const gift = p => { const g = find(p.giftee); return g ? { name: g.name, wishlist: g.wishlist } : null; };
+  const pub = adm => P.map(p => ({ name: p.name, claimed: !!p.pin, opened: p.opened, ...(adm ? { wish: !!p.wishlist } : {}) })).sort((a, b) => a.name.localeCompare(b.name));
+  const drawn = () => P.some(p => p.giftee);
+  const adm = (pass, f) => pass === "demo" ? f() : { ok: false, error: "admin" };
+  return {
+    ss_list: () => ({ drawn: drawn(), people: pub() }),
+    ss_register: ({ p_name, p_pin }) => { const p = find(p_name); if (!/^\d{4}$/.test(p_pin)) return { ok: false, error: "format" }; if (p.pin) return { ok: false, error: "already" }; p.pin = p_pin; return { ok: true }; },
+    ss_me: ({ p_name, p_pin }) => { const { p, e } = auth(p_name, p_pin); return e ? { ok: false, error: e } : { ok: true, drawn: !!p.giftee, opened: p.opened, changed: p.changed, wishlist: p.wishlist, giftee: p.opened ? gift(p) : null }; },
+    ss_wish: ({ p_name, p_pin, p_text }) => { const { p, e } = auth(p_name, p_pin); if (e) return { ok: false, error: e }; p.wishlist = p_text.slice(0, 400); return { ok: true }; },
+    ss_open: ({ p_name, p_pin }) => { const { p, e } = auth(p_name, p_pin); if (e) return { ok: false, error: e }; if (!p.giftee) return { ok: false, error: "notdrawn" }; p.opened = true; p.changed = false; return { ok: true, giftee: gift(p) }; },
+    ss_admin_state: ({ p_pass }) => adm(p_pass, () => ({ ok: true, drawn: drawn(), people: pub(true) })),
+    ss_admin_add: ({ p_pass, p_name }) => adm(p_pass, () => { const n = p_name.trim(); if (!n) return { ok: false, error: "format" }; if (P.some(p => p.name.toLowerCase() === n.toLowerCase())) return { ok: false, error: "exists" };
+      const np = { name: n, pin: null, wishlist: "", giftee: null, opened: false, changed: false };
+      if (drawn()) { const a = P.find(p => !p.opened) || P[0]; np.giftee = a.giftee; a.giftee = n; a.changed = a.opened; a.opened = false; } P.push(np); return { ok: true }; }),
+    ss_admin_remove: ({ p_pass, p_name }) => adm(p_pass, () => { const x = find(p_name); if (x.giftee) { if (P.length <= 3) return { ok: false, error: "few" }; const a = P.find(p => p.giftee === x.name); a.giftee = x.giftee; a.changed = a.opened; a.opened = false; } P.splice(P.indexOf(x), 1); return { ok: true }; }),
+    ss_admin_reset_pin: ({ p_pass, p_name }) => adm(p_pass, () => { find(p_name).pin = null; return { ok: true }; }),
+    ss_admin_draw: ({ p_pass, p_force }) => adm(p_pass, () => { if (drawn() && !p_force) return { ok: false, error: "drawn" }; draw(); return { ok: true }; })
+  };
+})();
+
+/* ============================================================
+   Petits effets : neige, confettis, sons
+   ============================================================ */
+const FX = (() => {
+  const c = $("#fx"), x = c.getContext("2d"); let W, H, D = Math.min(2, devicePixelRatio || 1);
+  const calm = matchMedia("(prefers-reduced-motion:reduce)").matches;
+  const size = () => { W = innerWidth; H = innerHeight; c.width = W * D; c.height = H * D; x.setTransform(D, 0, 0, D, 0, 0); };
+  size(); addEventListener("resize", size);
+  const snow = Array.from({ length: calm ? 0 : 70 }, () => ({ x: Math.random() * 2000, y: Math.random() * 1200, r: 1 + Math.random() * 2.6, v: .3 + Math.random() * .9, w: Math.random() * 6.28 }));
+  let conf = [];
+  const COL = ["#e5383b", "#ffd166", "#2ec4a0", "#fff7e6", "#6db8ff", "#ff6ad5"];
+  function burst(n = 180) {
+    if (calm) return;
+    for (let i = 0; i < n; i++) { const a = Math.random() * 6.28, s = 4 + Math.random() * 13;
+      conf.push({ x: W / 2, y: H * .42, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 6, r: 4 + Math.random() * 6, c: COL[i % COL.length], rot: Math.random() * 6.28, vr: (Math.random() - .5) * .5, life: 1 }); }
+  }
+  (function tick() {
+    x.clearRect(0, 0, W, H);
+    x.fillStyle = "rgba(255,255,255,.75)";
+    for (const s of snow) { s.y += s.v; s.w += .02; s.x += Math.sin(s.w) * .4; if (s.y > H + 5) { s.y = -5; s.x = Math.random() * W; } x.beginPath(); x.arc(s.x % W, s.y, s.r, 0, 6.28); x.fill(); }
+    for (const p of conf) { p.vy += .32; p.vx *= .985; p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.life -= .006;
+      x.save(); x.translate(p.x, p.y); x.rotate(p.rot); x.globalAlpha = Math.max(0, p.life); x.fillStyle = p.c; x.fillRect(-p.r / 2, -p.r / 2, p.r, p.r * .6); x.restore(); }
+    conf = conf.filter(p => p.life > 0 && p.y < H + 40);
+    requestAnimationFrame(tick);
+  })();
+  return { burst };
+})();
+
+const SND = (() => {
+  let ac, on = true;
+  const ctx = () => ac || (ac = new (window.AudioContext || window.webkitAudioContext)());
+  const tone = (f, t, d = .5, type = "triangle", v = .14) => { const a = ctx(), o = a.createOscillator(), g = a.createGain(); o.type = type; o.frequency.value = f; g.gain.setValueAtTime(v, a.currentTime + t); g.gain.exponentialRampToValueAtTime(.0001, a.currentTime + t + d); o.connect(g).connect(a.destination); o.start(a.currentTime + t); o.stop(a.currentTime + t + d); };
+  const wrap = f => (...a) => { if (!on) return; try { f(...a); } catch (e) {} };
+  return {
+    toggle: () => (on = !on), get on() { return on; },
+    tap: wrap(() => tone(180, 0, .12, "square", .06)),
+    rip: wrap(() => { const a = ctx(), n = a.sampleRate * .4, b = a.createBuffer(1, n, a.sampleRate), d = b.getChannelData(0); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+      const s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain(); s.buffer = b; f.type = "bandpass"; f.frequency.setValueAtTime(900, a.currentTime); f.frequency.exponentialRampToValueAtTime(5000, a.currentTime + .35); g.gain.value = .35; s.connect(f).connect(g).connect(a.destination); s.start(); }),
+    drum: wrap(() => { for (let i = 0; i < 16; i++) tone(90 + (i % 2) * 20, i * .09, .08, "square", .05); }),
+    fail: wrap(() => { tone(330, 0, .25, "sawtooth", .08); tone(247, .22, .5, "sawtooth", .08); }),
+    win: wrap(() => { [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => tone(f, i * .08, .7)); tone(2093, .5, 1.2, "sine", .08); })
+  };
+})();
+
+/* ============================================================
+   État + utilitaires
+   ============================================================ */
+const S = { list: null, name: null, pin: null, my: null, admin: null };
+const store = { get() { try { return JSON.parse(sessionStorage.getItem("ss") || "null"); } catch (e) { return null; } },
+                set(v) { try { v ? sessionStorage.setItem("ss", JSON.stringify(v)) : sessionStorage.removeItem("ss"); } catch (e) {} } };
+const hash = s => { let h = 2166136261; for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; };
+const initials = n => n.split(/\s+/).map((w, i) => i ? w : w[0]).join("").slice(0, 3).toUpperCase();
+const hue = n => hash(n) % 360;
+const daysLeft = () => Math.ceil((new Date(EVENT.date + "T00:00:00") - new Date(new Date().toDateString())) / 864e5);
+const countdown = () => { const d = daysLeft(); return d > 1 ? `J-${d}` : d === 1 ? "C'est demain !" : d === 0 ? "C'est aujourd'hui ! 🎉" : "C'est passé… 😅"; };
+
+function topbar(back) {
+  return `<div class="top">
+    ${back ? `<button class="ghost" id="back">← Ce n'est pas moi</button>` : `<span>${DEMO ? `<span class="demo">Mode démo</span>` : ""}</span>`}
+    <button class="ghost" id="snd" aria-label="Son">${SND.on ? "🔊" : "🔇"}</button></div>`;
+}
+function bindTop() {
+  $("#snd").onclick = e => { e.target.textContent = SND.toggle() ? "🔊" : "🔇"; };
+  const b = $("#back"); if (b) b.onclick = () => { S.name = S.pin = S.my = null; store.set(null); home(); };
+}
+
+/* ============================================================
+   ACCUEIL
+   ============================================================ */
+async function home() {
+  const app = $("#app");
+  try { S.list = await rpc("ss_list"); }
+  catch (e) { app.innerHTML = `<div class="panel"><h3>Connexion impossible</h3><p>Vérifie SUPABASE_URL / SUPABASE_KEY dans index.html et que le script SQL a bien été lancé.</p></div>`; return; }
+  const P = S.list.people, opened = P.filter(p => p.opened).length;
+  app.innerHTML = `${topbar(false)}
+  <header>
+    <div class="kicker">${esc(EVENT.team)} · Édition ${EVENT.date.slice(0, 4)}</div>
+    <h1>Secret <span>Santa</span></h1>
+    <p class="sub">Un booster, un collègue, un cadeau. Et surtout&nbsp;: <b>chut.</b> 🤫</p>
+    <div class="chips">
+      <div class="chip">Budget max <b>🎁 ${esc(EVENT.budget)}</b></div>
+      <div class="chip">Remise des cadeaux <b>📅 ${esc(EVENT.dateLabel)}</b></div>
+      <div class="chip">Compte à rebours <b>⏳ ${countdown()}</b></div>
+    </div>
+  </header>
+  <h2>C'est qui, toi&nbsp;?</h2>
+  <div class="grid">${P.map(p => `
+    <button class="who" data-n="${esc(p.name)}">
+      <span class="av" style="background:hsl(${hue(p.name)} 85% 68%)">${esc(initials(p.name))}</span>
+      <span><span class="n">${esc(p.name)}</span><br><span class="s">${p.opened ? "🎁 booster ouvert" : p.claimed ? "🔒 code créé" : "😴 pas encore passé"}</span></span>
+    </button>`).join("")}</div>
+  <div class="foot">
+    <div style="flex:1;min-width:220px">${S.list.drawn ? `${opened}/${P.length} boosters ouverts${opened === P.length ? " — bravo l'équipe 👏" : ""}` : "Le tirage n'est pas encore lancé — crée déjà ton code et laisse tes indices."}
+      <div class="bar"><i style="width:${P.length ? opened / P.length * 100 : 0}%"></i></div></div>
+    <a href="#admin">Admin</a>
+  </div>`;
+  bindTop();
+  app.querySelectorAll(".who").forEach(b => b.onclick = () => askPin(P.find(p => p.name === b.dataset.n)));
+}
+
+function askPin(p) {
+  const v = document.createElement("div"); v.className = "veil";
+  v.innerHTML = `<form class="modal" autocomplete="off">
+    <h2>${p.claimed ? `Re-bonjour ${esc(p.name)}` : `Bienvenue ${esc(p.name)} !`}</h2>
+    <p>${p.claimed ? "Ton code secret à 4 chiffres&nbsp;?" : "Choisis un code secret à 4 chiffres. Il te servira à revenir voir ta carte — retiens-le&nbsp;!"}</p>
+    <input class="pin" inputmode="numeric" pattern="[0-9]*" maxlength="4" type="password" aria-label="Code à 4 chiffres" placeholder="••••">
+    <div class="msg"></div>
+    <div class="row" style="justify-content:center;margin-top:10px">
+      <button type="button" class="btn small" id="cancel">Annuler</button>
+      <button class="btn">${p.claimed ? "Entrer" : "Créer mon code"}</button></div></form>`;
+  document.body.append(v);
+  const inp = $(".pin", v), msg = $(".msg", v); inp.focus();
+  $("#cancel", v).onclick = () => v.remove();
+  v.onclick = e => { if (e.target === v) v.remove(); };
+  $("form", v).onsubmit = async e => {
+    e.preventDefault(); const pin = inp.value.trim();
+    const fail = t => { msg.textContent = t; $(".modal", v).classList.remove("shake"); void v.offsetWidth; $(".modal", v).classList.add("shake"); inp.value = ""; inp.focus(); };
+    if (!/^\d{4}$/.test(pin)) return fail(ERR.format);
+    try {
+      if (!p.claimed) { const r = await rpc("ss_register", { p_name: p.name, p_pin: pin }); if (!r.ok) return fail(errText(r.error)); }
+      const me = await rpc("ss_me", { p_name: p.name, p_pin: pin });
+      if (!me.ok) return fail(errText(me.error));
+      S.name = p.name; S.pin = pin; S.my = me; store.set({ n: p.name, p: pin }); v.remove(); mine();
+    } catch (err) { fail(errText()); }
+  };
+}
+
+/* ============================================================
+   MON ESPACE : booster / carte / indices
+   ============================================================ */
+const JOKES = [
+  { big: "TOI", nm: "Toi-même", sub: "Bug du traîneau détecté…", stats: [["Budget", "10 € pour toi, bravo"], ["Effet de surprise", "0 %"]] },
+  { big: "PDG", nm: "Le grand patron", sub: "Bonne chance avec 10 €", stats: [["Pression", "maximale"], ["Idée cadeau", "une augmentation ?"]] },
+  { big: "🎅", nm: "Le vrai Père Noël", sub: "Il a déjà tout", stats: [["Adresse", "Pôle Nord"], ["Frais de port", "49,90 €"]] }
+];
+const RAR = ["Légendaire", "Ultra rare", "Holo brillante", "Édition limitée", "Collector"];
+function funStats(name) {
+  const h = hash(name), pick = (a, s) => a[(h >> s) % a.length];
+  const all = [
+    ["Sagesse en 2026", pick(["discutable", "suspecte", "exemplaire (auto-déclarée)", "en cours d'audit"], 2)],
+    ["Amour du chocolat", `${70 + (h >> 4) % 30}/100`],
+    ["Risque de deviner que c'est toi", `${3 + (h >> 6) % 30} %`],
+    ["Exigence cadeau", "★".repeat(1 + (h >> 8) % 5) + "☆".repeat(4 - (h >> 8) % 5)],
+    ["Pulls de Noël possédés", `${(h >> 10) % 6}`],
+    ["Cafés par jour", pick(["2", "4", "trop", "on ne compte plus"], 12)],
+    ["Talent pour emballer", pick(["papier journal", "scotch ×12", "niveau pro", "sac kraft et prière"], 14)]
+  ];
+  const i = h % all.length; return [all[i], all[(i + 2) % all.length], all[(i + 4) % all.length]];
+}
+function frontHTML({ big, nm, sub, stats, rar, num, col, joke }) {
+  return `<div class="rar"><span>${esc(rar)}</span><em>${esc(num)}</em></div>
+    <div class="art" style="background:${col}"><span class="hat">🎅</span><span class="big">${esc(big)}</span></div>
+    <div class="to">${esc(sub)}</div><div class="nm">${esc(nm)}</div>
+    <ul class="stats">${stats.map(([k, v]) => `<li><span>${esc(k)}</span><b>${esc(v)}</b></li>`).join("")}</ul>`;
+}
+function realFront(g) {
+  const n = (S.list?.people.length) || 16, i = (S.list?.people.findIndex(p => p.name === g.name) ?? 0) + 1;
+  return frontHTML({ big: initials(g.name), nm: g.name, sub: "Tu offres un cadeau à", stats: funStats(g.name), rar: RAR[hash(g.name) % RAR.length],
+    num: `${String(i).padStart(2, "0")}/${n}`, col: `linear-gradient(140deg,hsl(${hue(g.name)} 85% 62%),hsl(${(hue(g.name) + 60) % 360} 85% 50%))` });
+}
+function jokeFront() { const j = JOKES[Math.floor(Math.random() * JOKES.length)];
+  return frontHTML({ ...j, sub: j.sub, rar: "Mythique ???", num: "00/00", col: "#1b1030" }); }
+
+function giftWish(g) {
+  return `<div class="panel"><h3>🕵️ Les indices de ${esc(g.name)}</h3>
+    <p style="color:var(--ink);font-size:16px;white-space:pre-wrap;margin:0">${g.wishlist ? esc(g.wishlist) : `Aucun indice pour l'instant. Reviens plus tard… ou improvise. 😈`}</p>
+    <p style="margin:12px 0 0">Rappel&nbsp;: <b>${esc(EVENT.budget)} max</b>, remise des cadeaux <b>${esc(EVENT.dateLabel)}</b>.</p></div>`;
+}
+
+async function mine() {
+  const app = $("#app"), me = S.my;
+  const scene = me.drawn ? `<div class="scene">
+      <div class="stage" id="stage">
+        <div class="card ${me.opened ? "up" : ""}" id="card"><div class="inner">
+          <div class="face back"><b>?</b><i>Secret Santa ${esc(EVENT.team)}</i></div>
+          <div class="face front" id="front">${me.opened && me.giftee ? realFront(me.giftee) : ""}</div></div></div>
+        ${me.opened ? "" : `<div class="pack" id="pack"><div class="strip"></div><div class="body">
+          <div class="band">Booster · 1 collègue à l'intérieur</div><div class="q">?</div>
+          <div class="t">SECRET SANTA</div><div class="m">${esc(EVENT.team)} · Noël ${EVENT.date.slice(0, 4)} · ne pas secouer</div></div></div>`}
+      </div>
+      <div class="caption" id="cap">${me.opened
+        ? `Ta carte est face cachée.<small>Vérifie que personne ne regarde par-dessus ton épaule 👀 puis touche-la.</small>`
+        : `Déchire le haut du booster&nbsp;!<small>Glisse ton doigt dessus… ou tape 3 fois comme une brute.</small>`}</div>
+    </div>`
+    : `<div class="panel" style="text-align:center;padding:34px 18px"><div style="font-size:64px">🧝‍♂️🎲</div>
+        <h3>Les lutins n'ont pas encore mélangé les boosters</h3>
+        <p>Ton code est créé, c'est parfait. Reviens dès que le tirage est annoncé. En attendant, laisse tes indices ci-dessous.</p></div>`;
+  app.innerHTML = `${topbar(true)}
+    <h2>Salut ${esc(S.name)} 👋</h2>
+    ${me.changed ? `<div class="twist">🌀 <b>Rebondissement&nbsp;!</b> La liste a bougé et ton tirage a changé. Un nouveau booster t'attend.</div>` : ""}
+    ${scene}
+    <div id="gw">${me.opened && me.giftee ? `<div class="hide" id="gwin">${giftWish(me.giftee)}</div>` : ""}</div>
+    <div class="panel"><h3>🎁 Tes indices pour ton Père Noël secret</h3>
+      <p>Tes goûts, 2-3 idées, ce que tu ne veux surtout pas… Seule la personne qui t'a tiré·e les verra.</p>
+      <textarea id="wish" rows="3" maxlength="400" placeholder="Ex. : fan de thé, de puzzles et de blagues nulles. Pas de bougie, pitié.">${esc(me.wishlist)}</textarea>
+      <div class="row" style="margin-top:12px"><button class="btn gold" id="save">Enregistrer</button><span class="msg" id="wmsg" style="margin:0"></span></div></div>`;
+  bindTop();
+  $("#save").onclick = async () => {
+    const r = await rpc("ss_wish", { p_name: S.name, p_pin: S.pin, p_text: $("#wish").value }).catch(() => ({}));
+    $("#wmsg").textContent = r.ok ? "C'est noté ✅" : errText(r.error);
+  };
+  if (!me.drawn) return;
+  const stage = $("#stage"), card = $("#card");
+  stage.addEventListener("pointermove", e => { const r = stage.getBoundingClientRect(), px = (e.clientX - r.left) / r.width, py = (e.clientY - r.top) / r.height;
+    card.style.setProperty("--ry", (px - .5) * 22 + "deg"); card.style.setProperty("--rx", (.5 - py) * 18 + "deg");
+    card.style.setProperty("--mx", px * 100 + "%"); card.style.setProperty("--my", py * 100 + "%"); });
+  stage.addEventListener("pointerleave", () => { card.style.setProperty("--ry", "0deg"); card.style.setProperty("--rx", "0deg"); });
+  if (me.opened) {
+    let shown = false;
+    card.onclick = () => { shown = !shown; card.style.setProperty("--flip", shown ? "180deg" : "0deg"); $("#gwin")?.classList.toggle("hide", !shown);
+      $("#cap").innerHTML = shown ? `Chut. 🤫<small>Touche la carte pour la re-cacher.</small>` : `Carte cachée.<small>Touche-la pour la revoir.</small>`; if (shown) SND.tap(); };
+  } else armPack();
+}
+
+function armPack() {
+  const pack = $("#pack"), strip = $(".strip", pack); let sx = null, taps = 0, done = false, moved = 0;
+  const setP = p => strip.style.setProperty("--p", p);
+  const go = () => { if (done) return; done = true; openBooster(); };
+  pack.addEventListener("pointerdown", e => { sx = e.clientX; moved = 0; try { pack.setPointerCapture(e.pointerId); } catch (_) {} });
+  pack.addEventListener("pointermove", e => { if (sx == null || done) return; moved = Math.abs(e.clientX - sx); const p = Math.min(1, moved / (pack.offsetWidth * .75)); setP(Math.max(p, taps / 3)); if (p >= 1) go(); });
+  const up = () => { if (sx == null || done) return; sx = null;
+    if (moved < 8) { taps++; SND.tap(); pack.classList.remove("tap"); void pack.offsetWidth; pack.classList.add("tap"); if (taps >= 3) return go(); }
+    setP(taps / 3); };
+  pack.addEventListener("pointerup", up); pack.addEventListener("pointercancel", up);
+}
+
+async function openBooster() {
+  const pack = $("#pack"), card = $("#card"), cap = $("#cap"), front = $("#front");
+  const say = (t, s = "") => cap.innerHTML = `${t}${s ? `<small>${s}</small>` : ""}`;
+  const flip = on => card.style.setProperty("--flip", on ? "180deg" : "0deg");
+  SND.rip(); pack.classList.add("open");
+  const req = rpc("ss_open", { p_name: S.name, p_pin: S.pin }).catch(() => ({ ok: false }));
+  await sleep(500);
+  pack.classList.add("gone"); card.classList.add("up");
+  const res = await req;
+  if (!res.ok) { say("Aïe, le traîneau a calé.", errText(res.error)); await sleep(2500); S.my = await rpc("ss_me", { p_name: S.name, p_pin: S.pin }); return mine(); }
+  SND.drum(); card.classList.add("tremble");
+  for (const l of ["Consultation des lutins…", "Tentative de corruption du Père Noël…", "Vérification que ce n'est pas toi…"]) { say(l); await sleep(850); }
+  card.classList.remove("tremble");
+  // la fausse joie
+  front.classList.add("joke"); front.innerHTML = jokeFront(); say("Et tu as tiré…"); flip(true); await sleep(650); SND.fail();
+  say("…ah.", "Attends, attends."); await sleep(1900);
+  flip(false); say("Mais non, on rigole. 😅"); await sleep(900);
+  // la vraie
+  front.classList.remove("joke"); front.innerHTML = realFront(res.giftee);
+  card.classList.add("tremble"); say("Pour de vrai cette fois…"); await sleep(900); card.classList.remove("tremble");
+  flip(true); $("#flash").classList.remove("on"); void $("#flash").offsetWidth; $("#flash").classList.add("on");
+  SND.win(); FX.burst(220); setTimeout(() => FX.burst(120), 450);
+  say(`C'est ${esc(res.giftee.name)} ! 🎉`, "Chut. Tu ne dis rien à personne. 🤫");
+  pack.remove();
+  $("#gw").innerHTML = giftWish(res.giftee);
+  S.my = { ...S.my, opened: true, changed: false, giftee: res.giftee };
+  let shown = true;
+  card.onclick = () => { shown = !shown; flip(shown); $("#gw").firstElementChild?.classList.toggle("hide", !shown); say(shown ? "Chut. 🤫" : "Carte cachée.", shown ? "Touche la carte pour la cacher." : "Touche-la pour la revoir."); };
+}
+
+/* ============================================================
+   ADMIN (#admin)
+   ============================================================ */
+async function admin(msg = "") {
+  const app = $("#app");
+  if (!S.admin) {
+    app.innerHTML = `<div class="top"><a class="ghost" href="#" style="text-decoration:none">← Retour</a></div>
+      <form class="panel" id="af"><h3>Coulisses du Père Noël</h3><p>Mot de passe admin${DEMO ? " (en démo : <b>demo</b>)" : ""}</p>
+      <div class="row"><input type="password" id="ap" style="flex:1"><button class="btn">Entrer</button></div><div class="msg">${esc(msg)}</div></form>`;
+    $("#af").onsubmit = async e => { e.preventDefault(); const pass = $("#ap").value;
+      const r = await rpc("ss_admin_state", { p_pass: pass }).catch(() => ({})); if (r.ok) { S.admin = pass; admin(); } else admin(errText(r.error)); };
+    return;
+  }
+  const st = await rpc("ss_admin_state", { p_pass: S.admin });
+  if (!st.ok) { S.admin = null; return admin(errText(st.error)); }
+  const P = st.people, cl = P.filter(p => p.claimed).length, op = P.filter(p => p.opened).length;
+  app.innerHTML = `<div class="top"><a class="ghost" href="#" style="text-decoration:none">← Retour au site</a></div>
+    <h2>Coulisses 🎅</h2>
+    <div class="chips"><div class="chip">Participants <b>${P.length}</b></div><div class="chip">Codes créés <b>${cl}/${P.length}</b></div>
+      <div class="chip">Tirage <b>${st.drawn ? "✅ fait" : "⏳ pas encore"}</b></div><div class="chip">Boosters ouverts <b>${op}/${P.length}</b></div></div>
+    <div class="panel"><h3>🎲 Tirage au sort</h3>
+      <p>${st.drawn ? "Le tirage est fait. Personne (même toi) ne voit qui a tiré qui. Tu peux encore ajouter ou retirer quelqu'un : la chaîne se répare toute seule et seule la personne concernée devra rouvrir un booster."
+        : "Conseil : attends que tout le monde ait créé son code avant de lancer, comme ça personne ne peut ouvrir le booster d'un autre."}</p>
+      <button class="btn ${st.drawn ? "small" : "gold"}" id="draw">${st.drawn ? "Tout refaire (remet tous les boosters à zéro)" : "Lancer le tirage"}</button>
+      <div class="msg" id="amsg">${esc(msg)}</div></div>
+    <div class="panel"><h3>👥 Participants</h3>
+      <form class="row" id="addf" style="margin-bottom:8px"><input type="text" id="newn" maxlength="30" placeholder="Prénom à ajouter" style="flex:1;min-width:160px"><button class="btn">Ajouter</button></form>
+      ${P.map(p => `<div class="arow"><div><strong>${esc(p.name)}</strong><br><span>${p.claimed ? "🔒 code créé" : "😴 pas de code"} · ${p.wish ? "📝 indices" : "pas d'indices"}${st.drawn ? ` · ${p.opened ? "🎁 ouvert" : "booster fermé"}` : ""}</span></div>
+        <div class="row"><button class="btn small" data-a="reset" data-n="${esc(p.name)}">Code oublié</button><button class="btn small" data-a="rm" data-n="${esc(p.name)}">Retirer</button></div></div>`).join("")}</div>`;
+  const call = async (fn, args, okMsg) => { const r = await rpc(fn, { p_pass: S.admin, ...args }).catch(() => ({})); admin(r.ok ? okMsg : errText(r.error)); };
+  const twice = (b, f) => { if (b.dataset.sure) return f(); b.dataset.sure = 1; const t = b.textContent; b.textContent = "Sûr ? Re-clique"; setTimeout(() => { delete b.dataset.sure; b.textContent = t; }, 3000); };
+  $("#draw").onclick = e => st.drawn ? twice(e.target, () => call("ss_admin_draw", { p_force: true }, "Nouveau tirage effectué.")) : call("ss_admin_draw", { p_force: false }, "Tirage lancé ! Préviens l'équipe.");
+  $("#addf").onsubmit = e => { e.preventDefault(); call("ss_admin_add", { p_name: $("#newn").value }, "Ajouté."); };
+  app.querySelectorAll("[data-a]").forEach(b => b.onclick = () => twice(b, () => b.dataset.a === "rm"
+    ? call("ss_admin_remove", { p_name: b.dataset.n }, `${b.dataset.n} retiré·e.`)
+    : call("ss_admin_reset_pin", { p_name: b.dataset.n }, `Code de ${b.dataset.n} effacé : il/elle peut en recréer un.`)));
+}
+
+/* ============================================================
+   Démarrage
+   ============================================================ */
+async function route() {
+  document.querySelectorAll(".veil").forEach(v => v.remove());
+  if (location.hash === "#admin") return admin();
+  const s = store.get();
+  if (s && !S.name) {
+    try { S.list = await rpc("ss_list"); const me = await rpc("ss_me", { p_name: s.n, p_pin: s.p }); if (me.ok) { S.name = s.n; S.pin = s.p; S.my = me; return mine(); } } catch (e) {}
+    store.set(null);
+  }
+  if (S.name) return mine();
+  home();
+}
+addEventListener("hashchange", route);
+route();
+</script>
+</body>
+</html>
