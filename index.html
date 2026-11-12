@@ -322,7 +322,7 @@ async function home() {
       <div class="chip">Compte à rebours <b>⏳ ${countdown()}</b></div>
     </div>
   </header>
-  <h2>C'est qui, toi&nbsp;?</h2>
+  <h2>Qui est-tu ?</h2>
   <div class="grid">${P.map(p => `
     <button class="who" data-n="${esc(p.name)}">
       <span class="av" style="background:hsl(${hue(p.name)} 85% 68%)">${esc(initials(p.name))}</span>
