@@ -14,14 +14,14 @@
    CONFIG — les 2 seules lignes à remplir (Supabase > Project Settings > API)
    Tant qu'elles sont vides, le site tourne en MODE DÉMO (rien n'est enregistré).
    ============================================================ */
-const SUPABASE_URL = "https://qqpihxogkxormygegjbf.supabase.co";   // ex. "https://abcdefgh.supabase.co"
-const SUPABASE_KEY = "sb_publishable_kjOc4Dvsa-9s5AoddzhVgg_FpD-KPWw";   // clé "anon" / "publishable" (publique, c'est normal)
+const SUPABASE_URL = "";   // ex. "https://abcdefgh.supabase.co"
+const SUPABASE_KEY = "";   // clé "anon" / "publishable" (publique, c'est normal)
 
 const EVENT = {
   team: "GS27",
   budget: "10 €",
   date: "2026-12-04",              // remise des cadeaux
-  dateLabel: "vendredi 18 décembre"
+  dateLabel: "vendredi 4 décembre"
 };
 </script>
 <style>
@@ -65,7 +65,7 @@ h2{font-size:26px;margin:0 0 14px;font-weight:800;letter-spacing:-.02em}
   border-radius:16px;padding:10px 12px;transition:transform .15s,background .15s,border-color .15s}
 .who:hover{transform:translateY(-3px) rotate(-1deg);background:rgba(255,255,255,.1);border-color:var(--gold)}
 .av{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:14px;color:#0a0f1f;position:relative}
-.av::after{content:"🎅";position:absolute;top:-13px;right:-8px;font-size:17px;transform:rotate(18deg)}
+.av::after{z-index:1;content:"🎅";position:absolute;top:-13px;right:-8px;font-size:17px;transform:rotate(18deg)}
 .who .n{font-weight:600;font-size:15px;line-height:1.15}
 .who .s{font-size:12px;color:var(--mute)}
 .foot{margin-top:34px;color:var(--mute);font-size:14px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
@@ -150,6 +150,9 @@ textarea,input[type=text],input[type=password]{width:100%;background:rgba(0,0,0,
 .rar{display:flex;justify-content:space-between;font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
 .rar em{font-style:normal;background:#1b1030;color:var(--gold);padding:3px 7px;border-radius:6px}
 .art{flex:1;margin:8px 0;border-radius:12px;display:grid;place-items:center;position:relative;overflow:hidden;min-height:0}
+.art .pic{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
+.art .hat{z-index:2}
+.av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;background:inherit}
 .art .big{font-size:clamp(54px,20vw,84px);font-weight:800;color:#fff;letter-spacing:-.04em;text-shadow:0 5px 0 rgba(0,0,0,.2)}
 .art .hat{position:absolute;top:6px;right:10px;font-size:34px;transform:rotate(16deg)}
 .to{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#7a5c2e;font-weight:600}
@@ -180,6 +183,10 @@ textarea,input[type=text],input[type=password]{width:100%;background:rgba(0,0,0,
 const DEMO = !SUPABASE_URL || !SUPABASE_KEY;
 const $ = (s, r = document) => r.querySelector(s);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+const norm = s => String(s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+const slug = n => norm(n).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+const avatarSrc = n => `avatars/${slug(n)}.png`;   // ex. avatars/christophe-lg.png
+const avatarImg = (n, cls) => `<img class="${cls}" src="${avatarSrc(n)}" alt="" loading="lazy" onerror="this.remove()">`;
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 async function rpc(fn, args = {}) {
@@ -204,7 +211,9 @@ const ERR = {
   admin: "Mot de passe admin incorrect.",
   exists: "Ce prénom est déjà dans la liste.",
   few: "Il faut au moins 3 participants.",
-  drawn: "Le tirage est déjà fait."
+  drawn: "Le tirage est déjà fait.",
+  impossible: "Impossible de trouver un tirage qui respecte tout l'historique. Retire quelques lignes (les plus anciennes) et relance.",
+  constraint: "Impossible de faire ce changement sans enfreindre l'historique. Utilise « Tout refaire »."
 };
 const errText = e => ERR[e] || "Oups, souci de connexion. Réessaie.";
 
@@ -213,8 +222,11 @@ const demo = (() => {
   const P = ["Adavan","Sarah","Romain","Alix","Florian","Victoire","Marie","Tristan","Christophe LG","Christophe D","Clément","Gaëlle","Audrey","Laurence","Charlène","Luisa"]
     .map(name => ({ name, pin: null, wishlist: "", giftee: null, opened: false, changed: false }));
   const WISH = ["J'adore le chocolat noir, les plantes increvables et les chaussettes moches.", "Tout sauf une bougie. J'ai 14 bougies.", ""];
-  const draw = () => { const s = [...P].sort(() => Math.random() - .5); s.forEach((p, i) => { p.giftee = s[(i + 1) % s.length].name; p.opened = false; p.changed = false; }); };
-  P.forEach((p, i) => p.wishlist = WISH[i % 3]); draw();
+  let H = [];
+  const forb = (a, b) => H.some(h => (norm(h.giver) === norm(a) && norm(h.receiver) === norm(b)) || (norm(h.giver) === norm(b) && norm(h.receiver) === norm(a)));
+  const draw = () => { for (let k = 0; k < 20000; k++) { const s = [...P].sort(() => Math.random() - .5);
+      if (s.every((p, i) => !forb(p.name, s[(i + 1) % s.length].name))) { s.forEach((p, i) => { p.giftee = s[(i + 1) % s.length].name; p.opened = false; p.changed = false; }); return true; } } return false; };
+  P.forEach((p, i) => p.wishlist = WISH[i % 3]);
   const find = n => P.find(p => p.name === n);
   const auth = (n, pin) => { const p = find(n); return !p ? { e: "unknown" } : !p.pin ? { e: "nopin" } : p.pin !== pin ? { e: "pin" } : { p }; };
   const gift = p => { const g = find(p.giftee); return g ? { name: g.name, wishlist: g.wishlist } : null; };
@@ -233,7 +245,9 @@ const demo = (() => {
       if (drawn()) { const a = P.find(p => !p.opened) || P[0]; np.giftee = a.giftee; a.giftee = n; a.changed = a.opened; a.opened = false; } P.push(np); return { ok: true }; }),
     ss_admin_remove: ({ p_pass, p_name }) => adm(p_pass, () => { const x = find(p_name); if (x.giftee) { if (P.length <= 3) return { ok: false, error: "few" }; const a = P.find(p => p.giftee === x.name); a.giftee = x.giftee; a.changed = a.opened; a.opened = false; } P.splice(P.indexOf(x), 1); return { ok: true }; }),
     ss_admin_reset_pin: ({ p_pass, p_name }) => adm(p_pass, () => { find(p_name).pin = null; return { ok: true }; }),
-    ss_admin_draw: ({ p_pass, p_force }) => adm(p_pass, () => { if (drawn() && !p_force) return { ok: false, error: "drawn" }; draw(); return { ok: true }; })
+    ss_admin_draw: ({ p_pass, p_force }) => adm(p_pass, () => { if (drawn() && !p_force) return { ok: false, error: "drawn" }; return draw() ? { ok: true } : { ok: false, error: "impossible" }; }),
+    ss_admin_history: ({ p_pass }) => adm(p_pass, () => ({ ok: true, rows: H })),
+    ss_admin_history_set: ({ p_pass, p_rows }) => adm(p_pass, () => { H = p_rows; return { ok: true, count: H.length }; })
   };
 })();
 
@@ -315,17 +329,17 @@ async function home() {
   <header>
     <div class="kicker">${esc(EVENT.team)} · Édition ${EVENT.date.slice(0, 4)}</div>
     <h1>Secret <span>Santa</span></h1>
-    <p class="sub">Inscris-toi avant le mardi 17 novembre en choisissant un code secret : il te servira à revenir voir qui tu dois gâter. Tirage au sort le mardi 17 à 12h.</p>
+    <p class="sub">Un booster, un collègue, un cadeau. Et surtout&nbsp;: <b>chut.</b> 🤫</p>
     <div class="chips">
       <div class="chip">Budget max <b>🎁 ${esc(EVENT.budget)}</b></div>
       <div class="chip">Remise des cadeaux <b>📅 ${esc(EVENT.dateLabel)}</b></div>
       <div class="chip">Compte à rebours <b>⏳ ${countdown()}</b></div>
     </div>
   </header>
-  <h2>Qui est-tu ?</h2>
+  <h2>C'est qui, toi&nbsp;?</h2>
   <div class="grid">${P.map(p => `
     <button class="who" data-n="${esc(p.name)}">
-      <span class="av" style="background:hsl(${hue(p.name)} 85% 68%)">${esc(initials(p.name))}</span>
+      <span class="av" style="background:hsl(${hue(p.name)} 85% 68%)">${esc(initials(p.name))}${avatarImg(p.name, "")}</span>
       <span><span class="n">${esc(p.name)}</span><br><span class="s">${p.opened ? "🎁 booster ouvert" : p.claimed ? "🔒 code créé" : "😴 pas encore passé"}</span></span>
     </button>`).join("")}</div>
   <div class="foot">
@@ -374,27 +388,27 @@ const JOKES = [
 ];
 const RAR = ["Légendaire", "Ultra rare", "Holo brillante", "Édition limitée", "Collector"];
 function funStats(name) {
-  const h = hash(name), pick = (a, s) => a[(h >> s) % a.length];
+  const h = hash(name), pick = (a, s) => a[(h >>> s) % a.length];
   const all = [
     ["Sagesse en 2026", pick(["discutable", "suspecte", "exemplaire (auto-déclarée)", "en cours d'audit"], 2)],
-    ["Amour du chocolat", `${70 + (h >> 4) % 30}/100`],
-    ["Risque de deviner que c'est toi", `${3 + (h >> 6) % 30} %`],
-    ["Exigence cadeau", "★".repeat(1 + (h >> 8) % 5) + "☆".repeat(4 - (h >> 8) % 5)],
-    ["Pulls de Noël possédés", `${(h >> 10) % 6}`],
+    ["Amour du chocolat", `${70 + (h >>> 4) % 30}/100`],
+    ["Risque de deviner que c'est toi", `${3 + (h >>> 6) % 30} %`],
+    ["Exigence cadeau", "★".repeat(1 + (h >>> 8) % 5) + "☆".repeat(4 - (h >>> 8) % 5)],
+    ["Pulls de Noël possédés", `${(h >>> 10) % 6}`],
     ["Cafés par jour", pick(["2", "4", "trop", "on ne compte plus"], 12)],
     ["Talent pour emballer", pick(["papier journal", "scotch ×12", "niveau pro", "sac kraft et prière"], 14)]
   ];
   const i = h % all.length; return [all[i], all[(i + 2) % all.length], all[(i + 4) % all.length]];
 }
-function frontHTML({ big, nm, sub, stats, rar, num, col, joke }) {
+function frontHTML({ big, nm, sub, stats, rar, num, col, joke, pic }) {
   return `<div class="rar"><span>${esc(rar)}</span><em>${esc(num)}</em></div>
-    <div class="art" style="background:${col}"><span class="hat">🎅</span><span class="big">${esc(big)}</span></div>
+    <div class="art" style="background:${col}"><span class="hat">🎅</span><span class="big">${esc(big)}</span>${pic ? avatarImg(pic, "pic") : ""}</div>
     <div class="to">${esc(sub)}</div><div class="nm">${esc(nm)}</div>
     <ul class="stats">${stats.map(([k, v]) => `<li><span>${esc(k)}</span><b>${esc(v)}</b></li>`).join("")}</ul>`;
 }
 function realFront(g) {
   const n = (S.list?.people.length) || 16, i = (S.list?.people.findIndex(p => p.name === g.name) ?? 0) + 1;
-  return frontHTML({ big: initials(g.name), nm: g.name, sub: "Tu offres un cadeau à", stats: funStats(g.name), rar: RAR[hash(g.name) % RAR.length],
+  return frontHTML({ pic: g.name, big: initials(g.name), nm: g.name, sub: "Tu offres un cadeau à", stats: funStats(g.name), rar: RAR[hash(g.name) % RAR.length],
     num: `${String(i).padStart(2, "0")}/${n}`, col: `linear-gradient(140deg,hsl(${hue(g.name)} 85% 62%),hsl(${(hue(g.name) + 60) % 360} 85% 50%))` });
 }
 function jokeFront() { const j = JOKES[Math.floor(Math.random() * JOKES.length)];
@@ -407,7 +421,7 @@ function giftWish(g) {
 }
 
 async function mine() {
-  const app = $("#app"), me = S.my;
+  const app = $("#app"), me = S.my; scrollTo(0, 0);
   const scene = me.drawn ? `<div class="scene">
       <div class="stage" id="stage">
         <div class="card ${me.opened ? "up" : ""}" id="card"><div class="inner">
@@ -497,7 +511,7 @@ async function openBooster() {
    ADMIN (#admin)
    ============================================================ */
 async function admin(msg = "") {
-  const app = $("#app");
+  const app = $("#app"); if (!msg) scrollTo(0, 0);
   if (!S.admin) {
     app.innerHTML = `<div class="top"><a class="ghost" href="#" style="text-decoration:none">← Retour</a></div>
       <form class="panel" id="af"><h3>Coulisses du Père Noël</h3><p>Mot de passe admin${DEMO ? " (en démo : <b>demo</b>)" : ""}</p>
@@ -508,6 +522,9 @@ async function admin(msg = "") {
   }
   const st = await rpc("ss_admin_state", { p_pass: S.admin });
   if (!st.ok) { S.admin = null; return admin(errText(st.error)); }
+  const hist = await rpc("ss_admin_history", { p_pass: S.admin }).catch(() => ({ ok: false }));
+  const histRows = hist.ok ? hist.rows : null;
+  const histText = (histRows || []).map(r => `${r.year ? r.year + " : " : ""}${r.giver} > ${r.receiver}`).join("\n");
   const P = st.people, cl = P.filter(p => p.claimed).length, op = P.filter(p => p.opened).length;
   app.innerHTML = `<div class="top"><a class="ghost" href="#" style="text-decoration:none">← Retour au site</a></div>
     <h2>Coulisses 🎅</h2>
@@ -518,6 +535,12 @@ async function admin(msg = "") {
         : "Conseil : attends que tout le monde ait créé son code avant de lancer, comme ça personne ne peut ouvrir le booster d'un autre."}</p>
       <button class="btn ${st.drawn ? "small" : "gold"}" id="draw">${st.drawn ? "Tout refaire (remet tous les boosters à zéro)" : "Lancer le tirage"}</button>
       <div class="msg" id="amsg">${esc(msg)}</div></div>
+    <div class="panel"><h3>📜 Historique des années précédentes</h3>
+      ${histRows === null ? `<p>Pour activer cette partie, lance d'abord <b>supabase-historique.sql</b> dans Supabase.</p>` : `
+      <p>Une ligne par cadeau : <b>année : qui a offert &gt; à qui</b>. Ces duos ne pourront pas se retrouver cette année, dans un sens comme dans l'autre. Tu peux aussi coller directement 3 colonnes depuis Excel.</p>
+      <textarea id="hist" rows="8" placeholder="2025 : Romain > Alix&#10;2025 : Alix > Marie&#10;2024 : Romain > Sarah">${esc(histText)}</textarea>
+      <div class="msg" id="hwarn"></div>
+      <div class="row" style="margin-top:8px"><button class="btn gold" id="hsave">Enregistrer l'historique</button><span style="color:var(--mute);font-size:13px">${histRows.length} ligne(s) enregistrée(s)</span></div>`}</div>
     <div class="panel"><h3>👥 Participants</h3>
       <form class="row" id="addf" style="margin-bottom:8px"><input type="text" id="newn" maxlength="30" placeholder="Prénom à ajouter" style="flex:1;min-width:160px"><button class="btn">Ajouter</button></form>
       ${P.map(p => `<div class="arow"><div><strong>${esc(p.name)}</strong><br><span>${p.claimed ? "🔒 code créé" : "😴 pas de code"} · ${p.wish ? "📝 indices" : "pas d'indices"}${st.drawn ? ` · ${p.opened ? "🎁 ouvert" : "booster fermé"}` : ""}</span></div>
@@ -525,6 +548,26 @@ async function admin(msg = "") {
   const call = async (fn, args, okMsg) => { const r = await rpc(fn, { p_pass: S.admin, ...args }).catch(() => ({})); admin(r.ok ? okMsg : errText(r.error)); };
   const twice = (b, f) => { if (b.dataset.sure) return f(); b.dataset.sure = 1; const t = b.textContent; b.textContent = "Sûr ? Re-clique"; setTimeout(() => { delete b.dataset.sure; b.textContent = t; }, 3000); };
   $("#draw").onclick = e => st.drawn ? twice(e.target, () => call("ss_admin_draw", { p_force: true }, "Nouveau tirage effectué.")) : call("ss_admin_draw", { p_force: false }, "Tirage lancé ! Préviens l'équipe.");
+  const parseHist = txt => {
+    const canon = n => (P.find(p => norm(p.name) === norm(n)) || {}).name || n.trim();
+    const rows = [], bad = [], unknown = new Set();
+    txt.split(/\n/).map(l => l.trim()).filter(Boolean).forEach(l => {
+      let year = null; const m = l.match(/^(20\d\d)\s*[:;,\t\-–]?\s*/); if (m) { year = +m[1]; l = l.slice(m[0].length); }
+      const parts = l.split(/\s*(?:=>|->|→|>|;|\t|,|\s+offre\s+à\s+|\s+à\s+)\s*/i).filter(Boolean);
+      if (parts.length !== 2) return bad.push(l);
+      const [g, r] = parts.map(canon); [g, r].forEach(n => { if (!P.some(p => p.name === n)) unknown.add(n); });
+      rows.push({ year, giver: g, receiver: r });
+    });
+    return { rows, bad, unknown: [...unknown] };
+  };
+  const hs = $("#hsave"); if (hs) {
+    const warn = () => { const { rows, bad, unknown } = parseHist($("#hist").value);
+      $("#hwarn").innerHTML = [rows.length ? `${rows.length} duo(s) reconnu(s).` : "", bad.length ? `⚠️ Lignes non comprises : ${bad.map(esc).join(" / ")}` : "",
+        unknown.length ? `ℹ️ Pas dans la liste cette année (ignoré·es) : ${unknown.map(esc).join(", ")}` : ""].filter(Boolean).join("<br>"); };
+    $("#hist").oninput = warn; warn();
+    hs.onclick = () => { const { rows, bad } = parseHist($("#hist").value); if (bad.length) return warn();
+      call("ss_admin_history_set", { p_rows: rows }, `Historique enregistré (${rows.length} duo(s)).${st.drawn ? " Le tirage actuel a été fait sans : clique « Tout refaire » pour en tenir compte." : ""}`); };
+  }
   $("#addf").onsubmit = e => { e.preventDefault(); call("ss_admin_add", { p_name: $("#newn").value }, "Ajouté."); };
   app.querySelectorAll("[data-a]").forEach(b => b.onclick = () => twice(b, () => b.dataset.a === "rm"
     ? call("ss_admin_remove", { p_name: b.dataset.n }, `${b.dataset.n} retiré·e.`)
