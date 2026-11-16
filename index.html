@@ -410,7 +410,7 @@ function frontHTML({ big, nm, sub, stats, rar, num, col, joke, pic }) {
 }
 function realFront(g) {
   const n = (S.list?.people.length) || 16, i = (S.list?.people.findIndex(p => p.name === g.name) ?? 0) + 1;
-  return frontHTML({ pic: g.name, big: initials(g.name), nm: g.name, sub: "Tu offres un cadeau à", stats: funStats(g.name), rar: RAR[hash(g.name) % RAR.length],
+  return frontHTML({ pic: g.name, big: initials(g.name), nm: g.name, sub: "Tu offres un cadeau à", stats: [], rar: RAR[hash(g.name) % RAR.length],
     num: `${String(i).padStart(2, "0")}/${n}`, col: `linear-gradient(140deg,hsl(${hue(g.name)} 85% 62%),hsl(${(hue(g.name) + 60) % 360} 85% 50%))` });
 }
 function jokeFront() { const j = JOKES[Math.floor(Math.random() * JOKES.length)];
