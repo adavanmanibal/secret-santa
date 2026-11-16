@@ -406,7 +406,7 @@ function frontHTML({ big, nm, sub, stats, rar, num, col, joke, pic }) {
   return `<div class="rar"><span>${esc(rar)}</span><em>${esc(num)}</em></div>
     <div class="art" style="background:${col}"><span class="hat">🎅</span><span class="big">${esc(big)}</span>${pic ? avatarImg(pic, "pic") : ""}</div>
     <div class="to">${esc(sub)}</div><div class="nm">${esc(nm)}</div>
-    <ul class="stats">${stats.map(([k, v]) => `<li><span>${esc(k)}</span><b>${esc(v)}</b></li>`).join("")}</ul>`;
+       ${stats.length ? `<ul class="stats">${stats.map(([k, v]) => `<li><span>${esc(k)}</span><b>${esc(v)}</b></li>`).join("")}</ul>` : ""}`;
 }
 function realFront(g) {
   const n = (S.list?.people.length) || 16, i = (S.list?.people.findIndex(p => p.name === g.name) ?? 0) + 1;
